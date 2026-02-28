@@ -1,0 +1,251 @@
+---
+import DocsLayout from '../../components/DocsLayout.astro';
+---
+
+<DocsLayout title="libstorage Tutorial">
+  <h1 class="page-title">Getting Started with libstorage</h1>
+  <p class="page-subtitle">Build a file-sharing application using the low-level C API</p>
+
+  <div class="intro-block">
+    <p>
+      In this tutorial, we'll build a simple
+      <a href="https://github.com/logos-storage/logos-storage-nim">libstorage-based</a> C application for sharing
+      files over the Logos Storage network. Since libstorage is a low-level API aimed at library developers,
+      we'll use a higher-level C wrapper called
+      <a href="https://github.com/logos-storage/easylibstorage">easylibstorage</a>.
+    </p>
+    <p>
+      This is the intended way to use libstorage: as a building block for higher-level libraries
+      or language bindings. Official bindings are available for
+      <a href="https://github.com/logos-storage/logos-storage-go-bindings">Go</a> and
+      <a href="https://github.com/logos-storage/logos-storage-rust-bindings">Rust</a>.
+    </p>
+  </div>
+
+  <!-- ============================================ -->
+  <h2 class="section-heading" id="prerequisites">Prerequisites</h2>
+
+  <ul class="prereq-list">
+    <li>git</li>
+    <li>CMake 3.14+</li>
+    <li>A C11 compiler</li>
+    <li><a href="https://github.com/logos-storage/logos-storage-nim">libstorage</a> (prebuilt binaries recommended)</li>
+  </ul>
+
+  <!-- ============================================ -->
+  <h2 class="section-heading" id="building">Building easylibstorage</h2>
+
+  <div class="step" data-step="1">
+    <h3>Clone the repository</h3>
+    <div class="code-block">
+      <div class="code-block-header">
+        <span class="code-lang">Shell</span>
+      </div>
+      <pre>git clone https://github.com/logos-storage/easylibstorage.git
+cd easylibstorage</pre>
+    </div>
+  </div>
+
+  <div class="step" data-step="2">
+    <h3>Download prebuilt libstorage binaries</h3>
+    <div class="terminal-block">./scripts/fetch-libstorage.sh</div>
+    <p>Ensure that the script completed successfully before continuing.</p>
+  </div>
+
+  <div class="step" data-step="3">
+    <h3>Build easylibstorage</h3>
+    <div class="code-block">
+      <div class="code-block-header">
+        <span class="code-lang">Shell</span>
+      </div>
+      <pre>cmake -B build -S . -DLOGOS_STORAGE_NIM_ROOT=./libstorage
+cmake --build build</pre>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <h2 class="section-heading" id="application">The Application</h2>
+
+  <p>
+    Our application will be composed of two simple CLI apps &mdash; a file uploader and a file downloader.
+    Once complete, you'll use them like this:
+  </p>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span class="code-lang">Shell</span>
+      <span class="code-filename">Usage</span>
+    </div>
+    <pre>./uploader ./myfile
+./downloader &lt;spr_string&gt; &lt;cid_string&gt; ./myfile-copy</pre>
+  </div>
+
+  <p>The meaning of <code>&lt;spr_string&gt;</code> and <code>&lt;cid_string&gt;</code> will be explained as we go. First, create a <code>tutorial</code> folder:</p>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span class="code-lang">Shell</span>
+    </div>
+    <pre>cd easylibstorage
+mkdir tutorial</pre>
+  </div>
+
+  <!-- ============================================ -->
+  <h2 class="section-heading" id="uploader">Uploader</h2>
+
+  <p>
+    The uploader configures a storage node with a discovery listen port (UDP 9090) and a data directory
+    (<code>./uploader-data</code>). It sets <code>nat</code> to <code>none</code> for local operation and
+    <code>bootstrap_node</code> to <code>NULL</code> since we're creating a new network.
+  </p>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span class="code-lang">C</span>
+      <span class="code-filename">uploader.c</span>
+    </div>
+    <pre set:html={`/* uploader.c: makes a local file available to the Logos
+   Storage network. */
+
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include "easystorage.h"
+
+void panic(const char *msg) {
+    fprintf(stderr, "Panic: %s\\n", msg);
+    exit(1);
+}
+
+void progress(int total, int complete, int status) {
+    printf("\\r  %d / %d bytes", complete, total);
+    fflush(stdout);
+}
+
+int main(int argc, char *argv[]) {
+    if (argc &lt; 2) {
+        printf("Usage: %s &lt;filepath&gt;\\n", argv[0]);
+        exit(1);
+    }
+
+    node_config cfg = {
+            .disc_port = 9090,
+            .data_dir = "./uploader-data",
+            .log_level = "INFO",
+            .bootstrap_node = NULL,
+            .nat = "none",
+    };
+
+    char *filepath = argv[1];
+
+    STORAGE_NODE node = e_storage_new(cfg);
+    if (node == NULL) panic("Failed to create storage node");
+    if (e_storage_start(node) != RET_OK) panic("Failed to start storage node");
+
+    char *cid = e_storage_upload(node, filepath, progress);
+    if (cid == NULL) panic("Upload failed");
+    char *spr = e_storage_spr(node);
+    if (spr == NULL) panic("Failed to get node's signed peer record");
+
+    printf("Run: downloader %s %s ./output-file\\n", spr, cid);
+    free(cid);
+    free(spr);
+
+    printf("\\nPress Enter to exit\\n");
+    getchar();
+
+    e_storage_stop(node);
+    e_storage_destroy(node);
+
+    return 0;
+}`} />
+  </div>
+
+  <p>
+    After starting the node and uploading the file, it becomes available over the network. The program
+    then outputs two critical pieces of information:
+  </p>
+
+  <div class="concept-block">
+    <div class="concept-name">Signed Peer Record (SPR)</div>
+    <div class="concept-desc">
+      A string encoding the node's public key, network ID, and connection addresses. It can be used to
+      find and connect to the node in the network. See the
+      <a href="https://github.com/libp2p/specs/blob/master/RFC/0002-signed-envelopes.md">libp2p specification</a>.
+    </div>
+  </div>
+
+  <div class="concept-block">
+    <div class="concept-name">Content ID (CID)</div>
+    <div class="concept-desc">
+      A string that uniquely identifies the uploaded file within the network. See the
+      <a href="https://github.com/multiformats/cid">CID specification</a>.
+    </div>
+  </div>
+
+  <p>Place this code in an <code>uploader.c</code> file inside the <code>easylibstorage/tutorial</code> directory.</p>
+
+  <!-- ============================================ -->
+  <h2 class="section-heading" id="downloader">Downloader</h2>
+
+  <p>
+    The downloader takes the uploader's SPR and the file's CID as arguments, bootstraps onto
+    the network through the uploader, and downloads the file.
+  </p>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span class="code-lang">C</span>
+      <span class="code-filename">downloader.c</span>
+    </div>
+    <pre set:html={`/* downloader.c: Download files from a Logos Storage node
+   into the local disk. */
+
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include "easystorage.h"
+
+void panic(const char *msg) {
+    fprintf(stderr, "Panic: %s\\n", msg);
+    exit(1);
+}
+
+void progress(int total, int complete, int status) {
+    printf("\\r  %d / %d bytes", complete, total);
+    fflush(stdout);
+}
+
+int main(int argc, char *argv[]) {
+    if (argc &lt; 4) {
+        printf("Usage: %s BOOTSTRAP_SPR CID &lt;output_file&gt;\\n", argv[0]);
+        exit(1);
+    }
+
+    char *spr = argv[1];
+    char *cid = argv[2];
+    char *filepath = argv[3];
+
+    node_config cfg = {
+            .api_port = 8081,
+            .disc_port = 9091,
+            .data_dir = "./downloader-data",
+            .log_level = "INFO",
+            .bootstrap_node = spr,
+            .nat = "none",
+    };
+
+    STORAGE_NODE node = e_storage_new(cfg);
+    if (node == NULL) panic("Failed to create storage node");
+    if (e_storage_start(node) != RET_OK) panic("Failed to start storage node");
+    if (e_storage_download(node, cid, filepath, progress) != RET_OK) panic("Failed to download file");
+    e_storage_stop(node);
+    e_storage_destroy(node);
+}`} />
+  </div>
+
+  <div class="callout callout-info">
+    <div class="callout-title">Note</div>
+    The downloader uses different ports (API port 8081, discovery port 9091) so it can run on the same
+    machine as the uploader. The <code>bootstrap_node</code> is set to the uploader's SPR, allowing the
+    downloader to discover and connect to the uploader on the network.
+  </div>
+</DocsLayout>

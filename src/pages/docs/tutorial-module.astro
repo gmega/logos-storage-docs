@@ -1,0 +1,118 @@
+---
+import DocsLayout from '../../components/DocsLayout.astro';
+---
+
+<DocsLayout title="Module API Tutorial">
+  <h1 class="page-title">Module API Tutorial</h1>
+  <p class="page-subtitle">Build applications on top of Logos Storage using the high-level C++ API</p>
+
+  <div class="intro-block">
+    <p>
+      The <a href="https://github.com/logos-co/logos-storage-module">Logos Storage Module</a> is a high-level C++ API
+      for building applications on top of Logos Storage. It underpins the
+      <a href="https://github.com/logos-co/logos-storage-ui">Logos Storage UI App</a> and uses a Qt-based plugin
+      architecture to manage storage nodes through asynchronous operations.
+    </p>
+  </div>
+
+  <!-- ============================================ -->
+  <h2 class="section-heading" id="getting-started">Getting Started</h2>
+
+  <p>
+    The recommended way to get started is to use the
+    <a href="https://github.com/logos-storage/logos-storage-app-skeleton">Logos Storage App Skeleton</a>,
+    a ready-made CLI template for building applications.
+  </p>
+
+  <div class="step" data-step="1">
+    <h3>Clone the Skeleton App</h3>
+    <div class="code-block">
+      <div class="code-block-header">
+        <span class="code-lang">Shell</span>
+      </div>
+      <pre>git clone https://github.com/logos-storage/logos-storage-app-skeleton.git
+cd logos-storage-app-skeleton</pre>
+    </div>
+    <p>Follow the README in the repository for build instructions and requirements.</p>
+  </div>
+
+  <div class="step" data-step="2">
+    <h3>Explore the Example</h3>
+    <p>
+      The skeleton provides a working example that demonstrates how to initialize the module,
+      start a storage node, upload and download files, and handle events.
+    </p>
+  </div>
+
+  <!-- ============================================ -->
+  <h2 class="section-heading" id="basic-workflow">Basic Workflow</h2>
+
+  <p>A typical application using the Module API follows this pattern:</p>
+
+  <ol class="workflow-list">
+    <li><strong>Initialize</strong> the module with a JSON configuration via <code>init(cfg)</code>.</li>
+    <li><strong>Start</strong> the node with <code>start()</code> and wait for the <code>storageStart</code> event.</li>
+    <li><strong>Upload files</strong> using <code>uploadUrl()</code> for filesystem files, or <code>uploadInit()</code> / <code>uploadChunk()</code> / <code>uploadFinalize()</code> for streaming uploads.</li>
+    <li><strong>Download files</strong> using <code>downloadToUrl()</code> to save to disk, or <code>downloadChunks()</code> for streamed downloads.</li>
+    <li><strong>Stop</strong> the node with <code>stop()</code> and clean up with <code>destroy()</code>.</li>
+  </ol>
+
+  <!-- ============================================ -->
+  <h2 class="section-heading" id="events">Event Handling</h2>
+
+  <p>All asynchronous operations report results through the <code>eventResponse</code> signal. Subscribe to specific events to handle results:</p>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span class="code-lang">C++</span>
+      <span class="code-filename">Handling upload completion</span>
+    </div>
+    <pre set:html={`m_logos-&gt;storage_module.on("storageUploadDone", [](const QVariantList&amp; data) {
+    bool success = data[0].toBool();
+    QString sessionId = data[1].toString();
+    QString cid = data[2].toString();
+
+    if (success) {
+        qDebug() &lt;&lt; "Upload complete, CID:" &lt;&lt; cid;
+    }
+});`} />
+  </div>
+
+  <p>Key events include:</p>
+
+  <div style="display: grid; gap: 0.5rem; margin: 1rem 0;">
+    <div style="display: flex; align-items: baseline; gap: 0.75rem; padding: 0.5rem 0;">
+      <span class="event-badge">storageStart</span>
+      <span style="color: #64748b; font-size: 0.8rem;">/</span>
+      <span class="event-badge">storageStop</span>
+      <span style="color: #94a3b8; font-size: 0.825rem;">Node lifecycle</span>
+    </div>
+    <div style="display: flex; align-items: baseline; gap: 0.75rem; padding: 0.5rem 0;">
+      <span class="event-badge">storageUploadProgress</span>
+      <span style="color: #64748b; font-size: 0.8rem;">/</span>
+      <span class="event-badge">storageUploadDone</span>
+      <span style="color: #94a3b8; font-size: 0.825rem;">Upload progress and completion</span>
+    </div>
+    <div style="display: flex; align-items: baseline; gap: 0.75rem; padding: 0.5rem 0;">
+      <span class="event-badge">storageDownloadProgress</span>
+      <span style="color: #64748b; font-size: 0.8rem;">/</span>
+      <span class="event-badge">storageDownloadDone</span>
+      <span style="color: #94a3b8; font-size: 0.825rem;">Download progress and completion</span>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <h2 class="section-heading" id="next-steps">Next Steps</h2>
+
+  <div class="callout callout-info">
+    <div class="callout-title">API Reference</div>
+    For full API documentation including all method signatures, parameters, and events, see the
+    <a href="/docs/module-api/">Module API Reference</a>.
+  </div>
+
+  <div class="callout callout-info">
+    <div class="callout-title">Detailed Tutorial</div>
+    For a more in-depth tutorial from the repository itself, see the
+    <a href="https://github.com/logos-co/logos-storage-module?tab=readme-ov-file#api">Logos Storage Module README</a>.
+  </div>
+</DocsLayout>

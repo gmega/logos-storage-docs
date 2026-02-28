@@ -1,0 +1,317 @@
+---
+import DocsLayout from '../../components/DocsLayout.astro';
+---
+
+<DocsLayout title="Module API Reference">
+  <h1 class="page-title">Logos Storage Module API</h1>
+  <p class="page-subtitle">High-level C++ interface for building applications on Logos Storage</p>
+
+  <div class="intro-block">
+    <p>
+      The <a href="https://github.com/logos-co/logos-storage-module">Logos Storage Module</a> provides a Qt-based plugin
+      interface (<code>StorageModuleInterface</code>) for managing storage nodes. It underpins the
+      <a href="https://github.com/logos-co/logos-storage-ui">Logos Storage UI App</a>.
+    </p>
+    <p>
+      All asynchronous operations return a <code>LogosResult</code> immediately indicating command delivery.
+      Actual success or failure is reported via named events through the <code>eventResponse</code> signal.
+    </p>
+  </div>
+
+  <!-- ============================================ -->
+  <h2 class="section-heading" id="lifecycle">Lifecycle Methods</h2>
+
+  <div class="api-entry" id="init">
+    <div class="api-name">
+      <a href="#init">init <span class="anchor-hash">#</span></a>
+    </div>
+    <div class="api-signature"><span class="sig-name">init</span><span class="sig-punct">(</span><span class="sig-param">cfg</span><span class="sig-punct">: </span><span class="sig-type">QString</span><span class="sig-punct">)</span> <span class="sig-punct">&rarr;</span> <span class="sig-return">LogosResult</span></div>
+    <p class="api-desc">Initializes the Storage Module with a JSON configuration string. Must be called before starting the node and should only be invoked once per instance.</p>
+    <table class="param-table">
+      <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td class="param-name">cfg</td><td class="param-type">QString</td><td class="param-desc">Configuration object as a JSON string.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="api-entry" id="start">
+    <div class="api-name">
+      <a href="#start">start <span class="anchor-hash">#</span></a>
+    </div>
+    <div class="api-signature"><span class="sig-name">start</span><span class="sig-punct">()</span> <span class="sig-punct">&rarr;</span> <span class="sig-return">LogosResult</span></div>
+    <p class="api-desc">Starts the Logos Storage node. Command success is indicated by the <code>storageStart</code> event.</p>
+    <div class="param-label">Events</div>
+    <ul class="event-list">
+      <li><span class="event-badge">storageStart</span> <span class="event-data">[success: bool, message: QString]</span></li>
+    </ul>
+  </div>
+
+  <div class="api-entry" id="stop">
+    <div class="api-name">
+      <a href="#stop">stop <span class="anchor-hash">#</span></a>
+    </div>
+    <div class="api-signature"><span class="sig-name">stop</span><span class="sig-punct">()</span> <span class="sig-punct">&rarr;</span> <span class="sig-return">LogosResult</span></div>
+    <p class="api-desc">Stops the Logos Storage node. Must be called before cleanup with <code>destroy()</code>.</p>
+    <div class="param-label">Events</div>
+    <ul class="event-list">
+      <li><span class="event-badge">storageStop</span> <span class="event-data">[success: bool, message: QString]</span></li>
+    </ul>
+  </div>
+
+  <div class="api-entry" id="destroy">
+    <div class="api-name">
+      <a href="#destroy">destroy <span class="anchor-hash">#</span></a>
+    </div>
+    <div class="api-signature"><span class="sig-name">destroy</span><span class="sig-punct">()</span> <span class="sig-punct">&rarr;</span> <span class="sig-return">LogosResult</span></div>
+    <p class="api-desc">Cleans up all resources synchronously. Call only after stopping the node.</p>
+  </div>
+
+  <div class="api-entry" id="version">
+    <div class="api-name">
+      <a href="#version">version <span class="anchor-hash">#</span></a>
+    </div>
+    <div class="api-signature"><span class="sig-name">version</span><span class="sig-punct">()</span> <span class="sig-punct">&rarr;</span> <span class="sig-return">QString</span></div>
+    <p class="api-desc">Retrieves the module version string.</p>
+  </div>
+
+  <!-- ============================================ -->
+  <h2 class="section-heading" id="network">Network Operations</h2>
+
+  <div class="api-entry" id="peerId">
+    <div class="api-name">
+      <a href="#peerId">peerId <span class="anchor-hash">#</span></a>
+    </div>
+    <div class="api-signature"><span class="sig-name">peerId</span><span class="sig-punct">()</span> <span class="sig-punct">&rarr;</span> <span class="sig-return">QString</span></div>
+    <p class="api-desc">Returns the libp2p Peer Identity for this node.</p>
+  </div>
+
+  <div class="api-entry" id="spr">
+    <div class="api-name">
+      <a href="#spr">spr <span class="anchor-hash">#</span></a>
+    </div>
+    <div class="api-signature"><span class="sig-name">spr</span><span class="sig-punct">()</span> <span class="sig-punct">&rarr;</span> <span class="sig-return">QString</span></div>
+    <p class="api-desc">Returns the <a href="https://github.com/libp2p/specs/blob/master/RFC/0002-signed-envelopes.md">Signed Peer Record</a> (SPR) for this node. The SPR encodes the node's public key, network ID, and connection addresses.</p>
+  </div>
+
+  <div class="api-entry" id="connect">
+    <div class="api-name">
+      <a href="#connect">connect <span class="anchor-hash">#</span></a>
+    </div>
+    <div class="api-signature"><span class="sig-name">connect</span><span class="sig-punct">(</span><span class="sig-param">peerId</span><span class="sig-punct">: </span><span class="sig-type">QString</span><span class="sig-punct">, </span><span class="sig-param">peerAddresses</span><span class="sig-punct">: </span><span class="sig-type">QStringList</span><span class="sig-punct">)</span> <span class="sig-punct">&rarr;</span> <span class="sig-return">LogosResult</span></div>
+    <p class="api-desc">Establishes a connection to another peer.</p>
+    <table class="param-table">
+      <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td class="param-name">peerId</td><td class="param-type">QString</td><td class="param-desc">The libp2p Peer ID of the target node.</td></tr>
+        <tr><td class="param-name">peerAddresses</td><td class="param-type">QStringList</td><td class="param-desc">A list of multiaddresses for the target peer.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="api-entry" id="debug">
+    <div class="api-name">
+      <a href="#debug">debug <span class="anchor-hash">#</span></a>
+    </div>
+    <div class="api-signature"><span class="sig-name">debug</span><span class="sig-punct">()</span> <span class="sig-punct">&rarr;</span> <span class="sig-return">LogosResult</span></div>
+    <p class="api-desc">Retrieves diagnostic information about the node as JSON.</p>
+  </div>
+
+  <!-- ============================================ -->
+  <h2 class="section-heading" id="upload">Upload Methods</h2>
+
+  <div class="api-entry" id="uploadUrl">
+    <div class="api-name">
+      <a href="#uploadUrl">uploadUrl <span class="anchor-hash">#</span></a>
+    </div>
+    <div class="api-signature"><span class="sig-name">uploadUrl</span><span class="sig-punct">(</span><span class="sig-param">url</span><span class="sig-punct">: </span><span class="sig-type">QUrl</span><span class="sig-punct">, </span><span class="sig-param">chunkSize</span><span class="sig-optional">?</span><span class="sig-punct">: </span><span class="sig-type">int</span><span class="sig-punct">)</span> <span class="sig-punct">&rarr;</span> <span class="sig-return">LogosResult</span></div>
+    <p class="api-desc">Recommended method for uploading files from the filesystem. Reads the file at the given URL and uploads it to the storage network.</p>
+    <table class="param-table">
+      <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td class="param-name">url</td><td class="param-type">QUrl</td><td class="param-desc">File location as a QUrl.</td></tr>
+        <tr><td class="param-name">chunkSize</td><td class="param-type">int</td><td class="param-desc">Optional. Default 64KB.</td></tr>
+      </tbody>
+    </table>
+    <div class="param-label">Events</div>
+    <ul class="event-list">
+      <li><span class="event-badge">storageUploadProgress</span> <span class="event-data">[success: bool, sessionId: QString, bytes: int]</span></li>
+      <li><span class="event-badge">storageUploadDone</span> <span class="event-data">[success: bool, sessionId: QString, cid: QString | error: QString]</span></li>
+    </ul>
+  </div>
+
+  <div class="api-entry" id="uploadInit">
+    <div class="api-name">
+      <a href="#uploadInit">uploadInit <span class="anchor-hash">#</span></a>
+    </div>
+    <div class="api-signature"><span class="sig-name">uploadInit</span><span class="sig-punct">(</span><span class="sig-param">filename</span><span class="sig-punct">: </span><span class="sig-type">QString</span><span class="sig-punct">, </span><span class="sig-param">chunkSize</span><span class="sig-optional">?</span><span class="sig-punct">: </span><span class="sig-type">int</span><span class="sig-punct">)</span> <span class="sig-punct">&rarr;</span> <span class="sig-return">LogosResult</span></div>
+    <p class="api-desc">Initializes a streaming upload session. Returns a <code>sessionId</code> for use with subsequent upload calls.</p>
+    <table class="param-table">
+      <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td class="param-name">filename</td><td class="param-type">QString</td><td class="param-desc">Identifier for metadata.</td></tr>
+        <tr><td class="param-name">chunkSize</td><td class="param-type">int</td><td class="param-desc">Optional. Default 64KB.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="api-entry" id="uploadChunk">
+    <div class="api-name">
+      <a href="#uploadChunk">uploadChunk <span class="anchor-hash">#</span></a>
+    </div>
+    <div class="api-signature"><span class="sig-name">uploadChunk</span><span class="sig-punct">(</span><span class="sig-param">sessionId</span><span class="sig-punct">: </span><span class="sig-type">QString</span><span class="sig-punct">, </span><span class="sig-param">chunk</span><span class="sig-punct">: </span><span class="sig-type">QByteArray</span><span class="sig-punct">)</span> <span class="sig-punct">&rarr;</span> <span class="sig-return">LogosResult</span></div>
+    <p class="api-desc">Sends an individual data chunk during a streaming upload.</p>
+    <table class="param-table">
+      <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td class="param-name">sessionId</td><td class="param-type">QString</td><td class="param-desc">Session ID from <code>uploadInit</code>.</td></tr>
+        <tr><td class="param-name">chunk</td><td class="param-type">QByteArray</td><td class="param-desc">The data segment to upload.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="api-entry" id="uploadFinalize">
+    <div class="api-name">
+      <a href="#uploadFinalize">uploadFinalize <span class="anchor-hash">#</span></a>
+    </div>
+    <div class="api-signature"><span class="sig-name">uploadFinalize</span><span class="sig-punct">(</span><span class="sig-param">sessionId</span><span class="sig-punct">: </span><span class="sig-type">QString</span><span class="sig-punct">)</span> <span class="sig-punct">&rarr;</span> <span class="sig-return">LogosResult</span></div>
+    <p class="api-desc">Completes a streaming upload session and generates the Content ID (CID).</p>
+  </div>
+
+  <div class="api-entry" id="uploadCancel">
+    <div class="api-name">
+      <a href="#uploadCancel">uploadCancel <span class="anchor-hash">#</span></a>
+    </div>
+    <div class="api-signature"><span class="sig-name">uploadCancel</span><span class="sig-punct">(</span><span class="sig-param">sessionId</span><span class="sig-punct">: </span><span class="sig-type">QString</span><span class="sig-punct">)</span> <span class="sig-punct">&rarr;</span> <span class="sig-return">LogosResult</span></div>
+    <p class="api-desc">Terminates an active upload session.</p>
+  </div>
+
+  <!-- ============================================ -->
+  <h2 class="section-heading" id="download">Download Methods</h2>
+
+  <div class="api-entry" id="downloadToUrl">
+    <div class="api-name">
+      <a href="#downloadToUrl">downloadToUrl <span class="anchor-hash">#</span></a>
+    </div>
+    <div class="api-signature"><span class="sig-name">downloadToUrl</span><span class="sig-punct">(</span><span class="sig-param">cid</span><span class="sig-punct">: </span><span class="sig-type">QString</span><span class="sig-punct">, </span><span class="sig-param">url</span><span class="sig-punct">: </span><span class="sig-type">QUrl</span><span class="sig-punct">, </span><span class="sig-param">local</span><span class="sig-optional">?</span><span class="sig-punct">: </span><span class="sig-type">bool</span><span class="sig-punct">, </span><span class="sig-param">chunkSize</span><span class="sig-optional">?</span><span class="sig-punct">: </span><span class="sig-type">int</span><span class="sig-punct">)</span> <span class="sig-punct">&rarr;</span> <span class="sig-return">LogosResult</span></div>
+    <p class="api-desc">Downloads content directly to a file on the filesystem.</p>
+    <table class="param-table">
+      <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td class="param-name">cid</td><td class="param-type">QString</td><td class="param-desc">The Content Identifier of the file to download.</td></tr>
+        <tr><td class="param-name">url</td><td class="param-type">QUrl</td><td class="param-desc">Destination file path.</td></tr>
+        <tr><td class="param-name">local</td><td class="param-type">bool</td><td class="param-desc">Optional. If true, only use locally available data.</td></tr>
+        <tr><td class="param-name">chunkSize</td><td class="param-type">int</td><td class="param-desc">Optional. Default 64KB.</td></tr>
+      </tbody>
+    </table>
+    <div class="param-label">Events</div>
+    <ul class="event-list">
+      <li><span class="event-badge">storageDownloadProgress</span> <span class="event-data">[success: bool, sessionId: QString, bytes: int]</span></li>
+      <li><span class="event-badge">storageDownloadDone</span> <span class="event-data">[success: bool, sessionId: QString, message: QString]</span></li>
+    </ul>
+  </div>
+
+  <div class="api-entry" id="downloadChunks">
+    <div class="api-name">
+      <a href="#downloadChunks">downloadChunks <span class="anchor-hash">#</span></a>
+    </div>
+    <div class="api-signature"><span class="sig-name">downloadChunks</span><span class="sig-punct">(</span><span class="sig-param">cid</span><span class="sig-punct">: </span><span class="sig-type">QString</span><span class="sig-punct">, </span><span class="sig-param">local</span><span class="sig-optional">?</span><span class="sig-punct">: </span><span class="sig-type">bool</span><span class="sig-punct">, </span><span class="sig-param">chunkSize</span><span class="sig-optional">?</span><span class="sig-punct">: </span><span class="sig-type">int</span><span class="sig-punct">)</span> <span class="sig-punct">&rarr;</span> <span class="sig-return">LogosResult</span></div>
+    <p class="api-desc">Streams download chunks for manual handling. Uses the same progress and completion events as <code>downloadToUrl</code>.</p>
+  </div>
+
+  <div class="api-entry" id="downloadCancel">
+    <div class="api-name">
+      <a href="#downloadCancel">downloadCancel <span class="anchor-hash">#</span></a>
+    </div>
+    <div class="api-signature"><span class="sig-name">downloadCancel</span><span class="sig-punct">(</span><span class="sig-param">sessionId</span><span class="sig-punct">: </span><span class="sig-type">QString</span><span class="sig-punct">)</span> <span class="sig-punct">&rarr;</span> <span class="sig-return">LogosResult</span></div>
+    <p class="api-desc">Cancels an active download session.</p>
+  </div>
+
+  <div class="api-entry" id="downloadManifest">
+    <div class="api-name">
+      <a href="#downloadManifest">downloadManifest <span class="anchor-hash">#</span></a>
+    </div>
+    <div class="api-signature"><span class="sig-name">downloadManifest</span><span class="sig-punct">(</span><span class="sig-param">cid</span><span class="sig-punct">: </span><span class="sig-type">QString</span><span class="sig-punct">)</span> <span class="sig-punct">&rarr;</span> <span class="sig-return">LogosResult</span></div>
+    <p class="api-desc">Retrieves the manifest metadata for a given CID.</p>
+  </div>
+
+  <!-- ============================================ -->
+  <h2 class="section-heading" id="storage-management">Storage Management</h2>
+
+  <div class="api-entry" id="exists">
+    <div class="api-name">
+      <a href="#exists">exists <span class="anchor-hash">#</span></a>
+    </div>
+    <div class="api-signature"><span class="sig-name">exists</span><span class="sig-punct">(</span><span class="sig-param">cid</span><span class="sig-punct">: </span><span class="sig-type">QString</span><span class="sig-punct">)</span> <span class="sig-punct">&rarr;</span> <span class="sig-return">LogosResult</span></div>
+    <p class="api-desc">Checks whether content is available locally.</p>
+  </div>
+
+  <div class="api-entry" id="fetch">
+    <div class="api-name">
+      <a href="#fetch">fetch <span class="anchor-hash">#</span></a>
+    </div>
+    <div class="api-signature"><span class="sig-name">fetch</span><span class="sig-punct">(</span><span class="sig-param">cid</span><span class="sig-punct">: </span><span class="sig-type">QString</span><span class="sig-punct">)</span> <span class="sig-punct">&rarr;</span> <span class="sig-return">LogosResult</span></div>
+    <p class="api-desc">Downloads content to local storage in the background.</p>
+  </div>
+
+  <div class="api-entry" id="remove">
+    <div class="api-name">
+      <a href="#remove">remove <span class="anchor-hash">#</span></a>
+    </div>
+    <div class="api-signature"><span class="sig-name">remove</span><span class="sig-punct">(</span><span class="sig-param">cid</span><span class="sig-punct">: </span><span class="sig-type">QString</span><span class="sig-punct">)</span> <span class="sig-punct">&rarr;</span> <span class="sig-return">LogosResult</span></div>
+    <p class="api-desc">Removes locally stored content for a given CID.</p>
+  </div>
+
+  <div class="api-entry" id="space">
+    <div class="api-name">
+      <a href="#space">space <span class="anchor-hash">#</span></a>
+    </div>
+    <div class="api-signature"><span class="sig-name">space</span><span class="sig-punct">()</span> <span class="sig-punct">&rarr;</span> <span class="sig-return">LogosResult</span></div>
+    <p class="api-desc">Retrieves storage capacity and usage information.</p>
+  </div>
+
+  <div class="api-entry" id="manifests">
+    <div class="api-name">
+      <a href="#manifests">manifests <span class="anchor-hash">#</span></a>
+    </div>
+    <div class="api-signature"><span class="sig-name">manifests</span><span class="sig-punct">()</span> <span class="sig-punct">&rarr;</span> <span class="sig-return">LogosResult</span></div>
+    <p class="api-desc">Lists all locally stored manifests.</p>
+  </div>
+
+  <!-- ============================================ -->
+  <h2 class="section-heading" id="configuration">Configuration</h2>
+
+  <div class="api-entry" id="updateLogLevel">
+    <div class="api-name">
+      <a href="#updateLogLevel">updateLogLevel <span class="anchor-hash">#</span></a>
+    </div>
+    <div class="api-signature"><span class="sig-name">updateLogLevel</span><span class="sig-punct">(</span><span class="sig-param">logLevel</span><span class="sig-punct">: </span><span class="sig-type">QString</span><span class="sig-punct">)</span> <span class="sig-punct">&rarr;</span> <span class="sig-return">LogosResult</span></div>
+    <p class="api-desc">Adjusts logging verbosity at runtime. Accepted levels: <code>TRACE</code>, <code>DEBUG</code>, <code>INFO</code>, <code>NOTICE</code>, <code>WARN</code>, <code>ERROR</code>, <code>FATAL</code>.</p>
+  </div>
+
+  <!-- ============================================ -->
+  <h2 class="section-heading" id="events">Event Handling</h2>
+
+  <p>All asynchronous operations deliver results via the <code>eventResponse</code> signal:</p>
+
+  <div class="type-def">
+    <div class="type-def-header">
+      <span class="type-label">Signal</span>
+      <span class="type-name">eventResponse</span>
+    </div>
+    <div class="type-def-body">
+      <pre>eventResponse(QString eventName, QVariantList data)</pre>
+      <p class="type-desc">Subscribe to events using the <code>on()</code> method:</p>
+    </div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-block-header">
+      <span class="code-lang">C++</span>
+      <span class="code-filename">Event subscription example</span>
+    </div>
+    <pre set:html={`m_logos-&gt;storage_module.on("eventName", [](const QVariantList&amp; data) {
+    // Handle event data
+});`} />
+  </div>
+</DocsLayout>
