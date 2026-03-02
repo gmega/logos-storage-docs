@@ -14,26 +14,28 @@ hero:
       variant: minimal
 ---
 
-import { Card, CardGrid } from '@astrojs/starlight/components';
+import { Card, CardGrid, Aside } from '@astrojs/starlight/components';
 
 ## What is Logos Storage?
 
-Logos Storage provides a basic filesharing layer — not unlike IPFS or BitTorrent — which allows users to publish and share files with one another over a decentralized network.
+Logos Storage is the storage layer in the Logos Stack. It currently provides a basic filesharing layer — not unlike IPFS or BitTorrent — which allows users to publish and share files with one another over a decentralized network.
 
 Moving forward, Logos Storage will enable full provider and downloader anonymity, as well as anonymous persistence. Check out [our roadmap](https://roadmap.logos.co/storage/roadmap/) for more details.
+
+<Aside type="note">This site is provisional. The final Logos Storage documentation will be under the [official Logos documentation repo](https://github.com/logos-co/logos-docs).</Aside>
 
 ## Get Started
 
 <CardGrid>
-  <Card title="Tutorials" icon="open-book">
-    Learn how to build applications on top of Logos Storage with our step-by-step guides.
-
-    [Storage Module Tutorial](/tutorials/storage-module/) | [libstorage Tutorial](/tutorials/libstorage/)
-  </Card>
   <Card title="API Reference" icon="setting">
     Complete API documentation for the Storage Module and libstorage.
 
     [Storage Module API](/api/storage-module/) | [libstorage API](/api/libstorage/)
+  </Card>
+  <Card title="Tutorials" icon="open-book">
+    Learn how to build applications on top of Logos Storage with our step-by-step guides.
+
+    [Storage Module Tutorial](/tutorials/storage-module/) | [libstorage Tutorial](/tutorials/libstorage/)
   </Card>
   <Card title="UI App" icon="laptop">
     The easiest way to try Logos Storage. Upload and download files with a desktop application.
