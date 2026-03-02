@@ -9,9 +9,11 @@ The website should have the following structure:
 - Landing Page
   * Brief description of Logos Storage and link to download the UI app.
 - Developer Resources
-  * API reference for the Logos Storage Module API, extracted from the Logos Storage Module interface (https://github.com/logos-co/logos-storage-module/blob/master/storage_module_interface.h);
-  * The contents of the API tutorials (libstorage tutorial, logos storage module tutorial);
-  * References to development resources like the logos storage skeleton app.
+  - API reference:
+    * API reference for the Logos Storage Module API, extracted from the Logos Storage Module interface (https://github.com/logos-co/logos-storage-module/blob/master/storage_module_interface.h);
+    * reference for libstorage.
+  - Tutorials:
+    * The contents of the API tutorials (libstorage tutorial, logos storage module tutorial).
 
 You can read more about Logos Storage in /home/giuliano/Work/Status/logos-docs/docs/storage. You should follow the references (HTTP links to READMEs and documents) provided in there to learn more.
 
@@ -27,4 +29,4 @@ The website should be organized in a way that is easy to navigate and provides c
 
 ## Output
 
-The output should be an Astro website in this directory that can be built and deployed to a static hosting service.
+The output should be an Astro Starlight website in this directory that can be built and deployed to a static hosting service.

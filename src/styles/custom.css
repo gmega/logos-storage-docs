@@ -1,0 +1,54 @@
+/* Logos brand styling - dark theme with teal accents */
+
+:root {
+  --sl-color-accent-low: #073b42;
+  --sl-color-accent: #0d8a9a;
+  --sl-color-accent-high: #5ccfdf;
+  --sl-font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+:root[data-theme='light'] {
+  --sl-color-accent-low: #d0f0f5;
+  --sl-color-accent: #0a7585;
+  --sl-color-accent-high: #053d45;
+}
+
+/* API documentation styling */
+
+.sl-markdown-content h3 code,
+.sl-markdown-content h4 code {
+  font-size: 0.95em;
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+  background: var(--sl-color-gray-6);
+  color: var(--sl-color-accent-high);
+}
+
+/* Function signature blocks */
+.sl-markdown-content pre {
+  border-left: 3px solid var(--sl-color-accent);
+}
+
+/* Signal badges */
+.signal-badge {
+  display: inline-block;
+  background: var(--sl-color-accent-low);
+  color: var(--sl-color-accent-high);
+  border: 1px solid var(--sl-color-accent);
+  padding: 0.1em 0.5em;
+  border-radius: 12px;
+  font-size: 0.75em;
+  font-weight: 600;
+  vertical-align: middle;
+  margin-left: 0.5em;
+}
+
+/* Parameter tables */
+.sl-markdown-content table {
+  width: 100%;
+}
+
+.sl-markdown-content table code {
+  font-size: 0.85em;
+  white-space: nowrap;
+}

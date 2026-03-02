@@ -1,0 +1,56 @@
+---
+title: Logos Storage
+description: Resilient, decentralized, and censorship-resistant storage for the Logos stack.
+template: splash
+hero:
+  tagline: A resilient, decentralized, and censorship-resistant storage layer for the Logos stack.
+  actions:
+    - text: Download the App
+      link: https://github.com/logos-co/logos-storage-ui
+      icon: external
+      variant: primary
+    - text: Developer Resources
+      link: /tutorials/storage-module/
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## What is Logos Storage?
+
+Logos Storage provides a basic filesharing layer — not unlike IPFS or BitTorrent — which allows users to publish and share files with one another over a decentralized network.
+
+Moving forward, Logos Storage will enable full provider and downloader anonymity, as well as anonymous persistence. Check out [our roadmap](https://roadmap.logos.co/storage/roadmap/) for more details.
+
+## Get Started
+
+<CardGrid>
+  <Card title="Tutorials" icon="open-book">
+    Learn how to build applications on top of Logos Storage with our step-by-step guides.
+
+    [Storage Module Tutorial](/tutorials/storage-module/) | [libstorage Tutorial](/tutorials/libstorage/)
+  </Card>
+  <Card title="API Reference" icon="setting">
+    Complete API documentation for the Storage Module and libstorage.
+
+    [Storage Module API](/api/storage-module/) | [libstorage API](/api/libstorage/)
+  </Card>
+  <Card title="UI App" icon="laptop">
+    The easiest way to try Logos Storage. Upload and download files with a desktop application.
+
+    [Download](https://github.com/logos-co/logos-storage-ui)
+  </Card>
+  <Card title="Skeleton App" icon="puzzle">
+    Jump-start your development with the Logos Storage App Skeleton.
+
+    [View on GitHub](https://github.com/logos-storage/logos-storage-app-skeleton)
+  </Card>
+</CardGrid>
+
+## Using Logos Storage
+
+Logos Storage can be used in the following ways:
+
+- **Logos Storage UI App** — A [desktop application](https://github.com/logos-co/logos-storage-ui) for uploading and downloading files over the Logos Storage network. This is the easiest way to get started.
+- **Logos Storage Module API** — A high-level [C++ API](https://github.com/logos-co/logos-storage-module) for building applications on top of Logos Storage. It underpins the UI App.
+- **libstorage** — A lower-level [C API](https://github.com/logos-co/logos-storage-nim) that sits under the Storage Module. Use this to build bindings for other languages. Bindings for [Go](https://github.com/logos-storage/logos-storage-go), [Rust](https://github.com/nipsysdev/storage-rust-bindings), and simplified [C](https://github.com/logos-storage/easylibstorage) are available.

@@ -1,0 +1,365 @@
+---
+title: libstorage API
+description: API reference for the libstorage C API — the low-level interface to Logos Storage.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+[libstorage](https://github.com/logos-co/logos-storage-nim) exposes a C API serving as the stable contract for language integration with Logos Storage. It underpins the higher-level [Storage Module API](/api/storage-module/) and is the foundation for language bindings in [Go](https://github.com/logos-storage/logos-storage-go), [Rust](https://github.com/nipsysdev/storage-rust-bindings), and simplified [C](https://github.com/logos-storage/easylibstorage).
+
+---
+
+## Callback Type
+
+All asynchronous operations use callbacks to report results:
+
+```c
+typedef void (*StorageCallback)(int callerRet, const char *msg, size_t len, void *userData);
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `callerRet` | `int` | Return code (see below) |
+| `msg` | `const char *` | Response message or data |
+| `len` | `size_t` | Length of `msg` |
+| `userData` | `void *` | User-provided context pointer |
+
+## Return Codes
+
+| Code | Name | Description |
+|------|------|-------------|
+| `0` | `RET_OK` | Operation dispatched successfully |
+| `1` | `RET_ERR` | Immediate failure |
+| `2` | `RET_MISSING_CALLBACK` | Required callback was not provided |
+| `3` | `RET_PROGRESS` | Progress update |
+
+---
+
+## Context Lifecycle
+
+### `storage_new`
+
+Creates a new storage instance.
+
+```c
+void *storage_new(const char *configJson, StorageCallback callback, void *userData);
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `configJson` | `const char *` | JSON configuration string |
+| `callback` | `StorageCallback` | Callback for completion notification |
+| `userData` | `void *` | User context pointer |
+
+**Returns:** Opaque context pointer (`void *`), or `NULL` on failure.
+
+### `storage_start`
+
+Starts the storage node.
+
+```c
+int storage_start(void *ctx, StorageCallback callback, void *userData);
+```
+
+### `storage_stop`
+
+Stops the storage node.
+
+```c
+int storage_stop(void *ctx, StorageCallback callback, void *userData);
+```
+
+### `storage_close`
+
+Closes the storage context before destruction.
+
+```c
+int storage_close(void *ctx, StorageCallback callback, void *userData);
+```
+
+### `storage_destroy`
+
+Frees all resources. This call is **synchronous**.
+
+```c
+int storage_destroy(void *ctx);
+```
+
+<Aside type="caution">Always call `storage_stop` and `storage_close` before `storage_destroy` to prevent data loss.</Aside>
+
+---
+
+## Version and Debug
+
+### `storage_version`
+
+Returns the library version string.
+
+```c
+char* storage_version(void *ctx);
+```
+
+### `storage_revision`
+
+Returns the contracts revision string.
+
+```c
+char* storage_revision(void *ctx);
+```
+
+### `storage_repo`
+
+Returns the repository path.
+
+```c
+int storage_repo(void *ctx, StorageCallback callback, void *userData);
+```
+
+### `storage_debug`
+
+Retrieves node diagnostic information as JSON.
+
+```c
+int storage_debug(void *ctx, StorageCallback callback, void *userData);
+```
+
+### `storage_spr`
+
+Returns the node's [Signed Peer Record](https://github.com/libp2p/specs/blob/master/RFC/0002-signed-envelopes.md).
+
+```c
+int storage_spr(void *ctx, StorageCallback callback, void *userData);
+```
+
+### `storage_peer_id`
+
+Returns the node's libp2p peer identity.
+
+```c
+int storage_peer_id(void *ctx, StorageCallback callback, void *userData);
+```
+
+### `storage_peer_debug`
+
+Returns debug information for a specific peer. Requires compilation with the appropriate flag.
+
+```c
+int storage_peer_debug(void *ctx, const char *peerId, StorageCallback callback, void *userData);
+```
+
+---
+
+## Logging
+
+### `storage_log_level`
+
+Sets the runtime log level.
+
+```c
+int storage_log_level(void *ctx, const char *logLevel, StorageCallback callback, void *userData);
+```
+
+Supported levels: `TRACE`, `DEBUG`, `INFO`, `NOTICE`, `WARN`, `ERROR`, `FATAL`
+
+---
+
+## Networking
+
+### `storage_connect`
+
+Connects to a peer by ID and optional addresses. If addresses are not provided, the peer is discovered via DHT.
+
+```c
+int storage_connect(void *ctx, const char *peerId, const char **peerAddresses,
+                    size_t peerAddressesSize, StorageCallback callback, void *userData);
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `ctx` | `void *` | Storage context |
+| `peerId` | `const char *` | Target peer identifier |
+| `peerAddresses` | `const char **` | Array of multiaddress strings |
+| `peerAddressesSize` | `size_t` | Number of addresses |
+| `callback` | `StorageCallback` | Completion callback |
+| `userData` | `void *` | User context pointer |
+
+---
+
+## Upload API
+
+### `storage_upload_init`
+
+Initializes an upload session. Returns the session ID via callback.
+
+```c
+int storage_upload_init(void *ctx, const char *filepath, size_t chunkSize,
+                        StorageCallback callback, void *userData);
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `filepath` | `const char *` | Path to the file to upload |
+| `chunkSize` | `size_t` | Chunk size in bytes |
+
+### `storage_upload_chunk`
+
+Uploads a single data chunk for the given session.
+
+```c
+int storage_upload_chunk(void *ctx, const char *sessionId, const uint8_t *chunk,
+                         size_t len, StorageCallback callback, void *userData);
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `sessionId` | `const char *` | Session ID from `storage_upload_init` |
+| `chunk` | `const uint8_t *` | Chunk data |
+| `len` | `size_t` | Length of chunk |
+
+### `storage_upload_finalize`
+
+Completes an upload session. Returns the CID via callback.
+
+```c
+int storage_upload_finalize(void *ctx, const char *sessionId,
+                            StorageCallback callback, void *userData);
+```
+
+### `storage_upload_cancel`
+
+Cancels an active upload session.
+
+```c
+int storage_upload_cancel(void *ctx, const char *sessionId,
+                          StorageCallback callback, void *userData);
+```
+
+### `storage_upload_file`
+
+Uploads a complete file in one call. May emit `RET_PROGRESS` updates via the callback. Returns the CID on completion.
+
+```c
+int storage_upload_file(void *ctx, const char *sessionId,
+                        StorageCallback callback, void *userData);
+```
+
+---
+
+## Download API
+
+### `storage_download_init`
+
+Initializes a download session.
+
+```c
+int storage_download_init(void *ctx, const char *cid, size_t chunkSize, bool local,
+                          StorageCallback callback, void *userData);
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `cid` | `const char *` | Content identifier |
+| `chunkSize` | `size_t` | Chunk size in bytes |
+| `local` | `bool` | If `true`, only retrieve locally-cached data |
+
+### `storage_download_stream`
+
+Downloads content directly to a file.
+
+```c
+int storage_download_stream(void *ctx, const char *cid, size_t chunkSize, bool local,
+                            const char *filepath, StorageCallback callback, void *userData);
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `cid` | `const char *` | Content identifier |
+| `chunkSize` | `size_t` | Chunk size in bytes |
+| `local` | `bool` | If `true`, only use locally-cached data |
+| `filepath` | `const char *` | Destination file path |
+
+### `storage_download_chunk`
+
+Downloads a single chunk. Chunk data is returned via the callback with `RET_PROGRESS`.
+
+```c
+int storage_download_chunk(void *ctx, const char *cid,
+                           StorageCallback callback, void *userData);
+```
+
+### `storage_download_cancel`
+
+Cancels an active download.
+
+```c
+int storage_download_cancel(void *ctx, const char *cid,
+                            StorageCallback callback, void *userData);
+```
+
+### `storage_download_manifest`
+
+Fetches the manifest (metadata) for a given CID.
+
+```c
+int storage_download_manifest(void *ctx, const char *cid,
+                              StorageCallback callback, void *userData);
+```
+
+---
+
+## Storage Operations
+
+### `storage_list`
+
+Lists all locally stored items.
+
+```c
+int storage_list(void *ctx, StorageCallback callback, void *userData);
+```
+
+### `storage_space`
+
+Returns storage space information.
+
+```c
+int storage_space(void *ctx, StorageCallback callback, void *userData);
+```
+
+### `storage_delete`
+
+Deletes content by CID from local storage.
+
+```c
+int storage_delete(void *ctx, const char *cid,
+                   StorageCallback callback, void *userData);
+```
+
+### `storage_fetch`
+
+Fetches content information for a CID.
+
+```c
+int storage_fetch(void *ctx, const char *cid,
+                  StorageCallback callback, void *userData);
+```
+
+### `storage_exists`
+
+Checks if content with the given CID exists locally.
+
+```c
+int storage_exists(void *ctx, const char *cid,
+                   StorageCallback callback, void *userData);
+```
+
+---
+
+## Events
+
+### `storage_set_event_callback`
+
+Registers a callback for asynchronous event notifications.
+
+```c
+int storage_set_event_callback(void *ctx, StorageCallback callback, void *userData);
+```

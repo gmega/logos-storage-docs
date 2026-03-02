@@ -1,0 +1,378 @@
+---
+title: Storage Module API
+description: API reference for the Logos Storage Module — a high-level C++ interface built on Qt.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+The [Logos Storage Module](https://github.com/logos-co/logos-storage-module) is a high-level C++ API built on Qt that provides file upload and download operations over the Logos Storage network. It underpins the [Logos Storage UI App](https://github.com/logos-co/logos-storage-ui).
+
+All methods return a `LogosResult` object containing a `success` boolean and a `value` (QVariant). Always check `success` before extracting the value:
+
+```cpp
+LogosResult result = m_logos->storage_module.someOperation(args);
+if (!result.success) {
+    QString error = result.getValue<QString>();
+} else {
+    auto value = result.getValue<ExpectedType>();
+}
+```
+
+<Aside type="tip">
+  The [Logos Storage App Skeleton](https://github.com/logos-storage/logos-storage-app-skeleton) provides a ready-made entry point with access to the `LogosModules` object (`m_logos`) and Qt-compatible synchronization utilities.
+</Aside>
+
+---
+
+## Node Lifecycle
+
+### `init(jsonConfig)`
+
+Initializes the storage module with the given JSON configuration.
+
+```cpp
+const QString jsonConfig = "{}";
+LogosResult result = m_logos->storage_module.init(jsonConfig);
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `jsonConfig` | `QString` | JSON string with node configuration |
+
+<Aside type="caution">Do not call `init()` more than once per instance.</Aside>
+
+### `start()`
+
+Starts the storage node. Listen for the `storageStart` signal for completion.
+
+```cpp
+m_logos->storage_module.on("storageStart", [this](const QVariantList& data) {
+    bool success = data[0].toBool();
+    if (!success) {
+        QString error = data[1].toString();
+    }
+});
+LogosResult result = m_logos->storage_module.start();
+```
+
+**Returns:** `LogosResult`
+
+<span class="signal-badge">Signal: storageStart</span> — `(bool success, QString message)`
+
+### `stop()`
+
+Stops the storage node.
+
+```cpp
+LogosResult result = m_logos->storage_module.stop();
+```
+
+<span class="signal-badge">Signal: storageStop</span>
+
+<Aside type="caution">It is **strongly recommended** to stop the node before calling `destroy()` to prevent data loss.</Aside>
+
+### `destroy()`
+
+Frees all resources associated with the storage module.
+
+```cpp
+LogosResult result = m_logos->storage_module.destroy();
+```
+
+---
+
+## Network Operations
+
+### `peerId()`
+
+Returns the node's libp2p peer identifier.
+
+```cpp
+LogosResult result = m_logos->storage_module.peerId();
+QString id = result.getValue<QString>();
+```
+
+### `spr()`
+
+Returns the node's [Signed Peer Record](https://github.com/libp2p/specs/blob/master/RFC/0002-signed-envelopes.md) — a string encoding the node's public key, network ID, and connection addresses.
+
+```cpp
+LogosResult result = m_logos->storage_module.spr();
+QString spr = result.getValue<QString>();
+```
+
+### `connect(peerId, peerAddresses)`
+
+Establishes a connection to another peer.
+
+```cpp
+LogosResult result = m_logos->storage_module.connect(peerId, peerAddresses);
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `peerId` | `QString` | Target peer's identifier |
+| `peerAddresses` | `QStringList` | List of multiaddresses for the peer |
+
+<span class="signal-badge">Signal: storageConnect</span>
+
+### `debug()`
+
+Returns node diagnostic data as JSON.
+
+```cpp
+LogosResult result = m_logos->storage_module.debug();
+```
+
+---
+
+## Publish/Download Operations
+
+### `uploadUrl(url, chunkSize)` — Simple Upload
+
+Publishes a file from a local URL. This is the recommended approach for most use cases.
+
+```cpp
+LogosResult result = m_logos->storage_module.uploadUrl(fileUrl);
+
+// With optional chunk size
+int chunkSize = 1024 * 64;
+LogosResult result = m_logos->storage_module.uploadUrl(fileUrl, chunkSize);
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `url` | `QUrl` | Local file URL to publish |
+| `chunkSize` | `int` | *(Optional)* Chunk size in bytes. Default: `65536` |
+
+<span class="signal-badge">Signal: storageUploadDone</span> — `(bool success, QString sessionId, QString cidOrError)`
+
+<span class="signal-badge">Signal: storageUploadProgress</span> — `(bool success, QString sessionId, int bytesUploaded)`
+
+```cpp
+m_logos->storage_module.on("storageUploadDone", [this](const QVariantList& data) {
+    bool success = data[0].toBool();
+    QString sessionId = data[1].toString();
+    QString cidOrError = data[2].toString();
+});
+
+m_logos->storage_module.on("storageUploadProgress", [this](const QVariantList& data) {
+    bool success = data[0].toBool();
+    QString sessionId = data[1].toString();
+    int bytes = data[2].toInt();
+});
+```
+
+### `uploadInit(filename, chunkSize)` — Streaming Publish
+
+Initializes a streaming session to publish a file, returning a session ID.
+
+```cpp
+LogosResult result = m_logos->storage_module.uploadInit(filename);
+QString sessionId = result.getValue<QString>();
+
+// With optional chunk size
+LogosResult result = m_logos->storage_module.uploadInit(filename, chunkSize);
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `filename` | `QString` | Name for the upload |
+| `chunkSize` | `int` | *(Optional)* Chunk size in bytes |
+
+### `uploadChunk(sessionId, data)`
+
+Uploads a chunk of data for an active streaming session.
+
+```cpp
+QFile file(filepath);
+file.open(QIODevice::ReadOnly);
+while (!file.atEnd()) {
+    QByteArray chunk = file.read(chunkSize);
+    result = m_logos->storage_module.uploadChunk(sessionId, chunk);
+    if (!result.success) {
+        // Handle error
+    }
+}
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `sessionId` | `QString` | Session ID from `uploadInit` |
+| `data` | `QByteArray` | Chunk data |
+
+### `uploadFinalize(sessionId)`
+
+Completes a streaming upload and returns the CID.
+
+```cpp
+LogosResult result = m_logos->storage_module.uploadFinalize(sessionId);
+if (result.success) {
+    QString cid = result.getValue<QString>();
+}
+```
+
+### `uploadCancel(sessionId)`
+
+Aborts an active upload session.
+
+```cpp
+LogosResult result = m_logos->storage_module.uploadCancel(sessionId);
+```
+
+---
+
+### `downloadToUrl(cid, url, local, chunkSize)` — File Download
+
+Downloads content identified by CID to a local file.
+
+```cpp
+LogosResult result = m_logos->storage_module.downloadToUrl(cid, destinationUrl);
+
+// With optional parameters
+bool local = false;
+int chunkSize = 1024 * 64;
+LogosResult result = m_logos->storage_module.downloadToUrl(cid, url, local, chunkSize);
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `cid` | `QString` | Content identifier |
+| `url` | `QUrl` | Destination file URL |
+| `local` | `bool` | *(Optional)* If `true`, only retrieve locally-cached data. Default: `false` |
+| `chunkSize` | `int` | *(Optional)* Chunk size in bytes. Default: `65536` |
+
+<span class="signal-badge">Signal: storageDownloadProgress</span> — `(bool success, QString sessionId, int bytes)`
+
+<span class="signal-badge">Signal: storageDownloadDone</span> — `(bool success, QString sessionId, QString errorMessage)`
+
+```cpp
+m_logos->storage_module.on("storageDownloadProgress", [this](const QVariantList& data) {
+    bool success = data[0].toBool();
+    QString sessionId = data[1].toString();
+    int size = data[2].toInt();
+});
+
+m_logos->storage_module.on("storageDownloadDone", [this](const QVariantList& data) {
+    bool success = data[0].toBool();
+    QString message = data[1].toString();
+});
+```
+
+### `downloadChunks(cid, local, chunkSize)` — Streaming Download
+
+Downloads content and receives chunks via events instead of writing to a file.
+
+```cpp
+LogosResult result = m_logos->storage_module.downloadChunks(cid);
+
+// With optional parameters
+LogosResult result = m_logos->storage_module.downloadChunks(cid, local, chunkSize);
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `cid` | `QString` | Content identifier |
+| `local` | `bool` | *(Optional)* Only retrieve locally-cached data. Default: `false` |
+| `chunkSize` | `int` | *(Optional)* Chunk size in bytes. Default: `65536` |
+
+### `downloadCancel(cid)`
+
+Aborts an active download.
+
+```cpp
+LogosResult result = m_logos->storage_module.downloadCancel(cid);
+```
+
+### `manifests()`
+
+Lists all locally stored manifests.
+
+```cpp
+LogosResult result = m_logos->storage_module.manifests();
+```
+
+### `downloadManifest(cid)`
+
+Fetches metadata for a given CID.
+
+```cpp
+LogosResult result = m_logos->storage_module.downloadManifest(cid);
+```
+
+---
+
+## Storage Management
+
+### `exists(cid)`
+
+Checks whether a CID exists in local storage.
+
+```cpp
+LogosResult result = m_logos->storage_module.exists(cid);
+```
+
+### `fetch(cid)`
+
+Triggers a background network retrieval for the given CID.
+
+```cpp
+LogosResult result = m_logos->storage_module.fetch(cid);
+```
+
+### `remove(cid)`
+
+Deletes content from local storage.
+
+```cpp
+LogosResult result = m_logos->storage_module.remove(cid);
+```
+
+### `space()`
+
+Returns storage usage statistics.
+
+```cpp
+LogosResult result = m_logos->storage_module.space();
+```
+
+---
+
+## Configuration
+
+### `updateLogLevel(level)`
+
+Updates the runtime log level.
+
+```cpp
+LogosResult result = m_logos->storage_module.updateLogLevel("INFO");
+```
+
+Supported levels: `TRACE`, `DEBUG`, `INFO`, `NOTICE`, `WARN`, `ERROR`, `FATAL`
+
+### `version()`
+
+Returns version information for the module.
+
+```cpp
+LogosResult result = m_logos->storage_module.version();
+QString ver = result.getValue<QString>();
+```
+
+---
+
+## Signals Reference
+
+All asynchronous operations emit Qt signals. Subscribe using `on()`:
+
+| Signal | Parameters | Emitted By |
+|--------|------------|------------|
+| `storageStart` | `(bool success, QString message)` | `start()` |
+| `storageStop` | `(bool success)` | `stop()` |
+| `storageConnect` | `(bool success, QString message)` | `connect()` |
+| `storageUploadDone` | `(bool success, QString sessionId, QString cidOrError)` | `uploadUrl()`, `uploadFinalize()` |
+| `storageUploadProgress` | `(bool success, QString sessionId, int bytes)` | `uploadUrl()`, `uploadChunk()` |
+| `storageDownloadDone` | `(bool success, QString sessionId, QString message)` | `downloadToUrl()`, `downloadChunks()` |
+| `storageDownloadProgress` | `(bool success, QString sessionId, int bytes)` | `downloadToUrl()`, `downloadChunks()` |
+
+<Aside type="tip">Progress events fire frequently. Use thresholds before updating the UI to prevent blocking.</Aside>
