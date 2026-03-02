@@ -1,0 +1,27 @@
+---
+title: Logos Builder's Workshop
+description: Ideas for building applications on top of Logos Storage.
+---
+
+The starting point for building on top of Logos Storage is the [Logos Storage Module](https://github.com/logos-co/logos-storage-module).
+You can find a Nix-based application skeleton [here](https://github.com/logos-storage/logos-storage-app-skeleton).
+
+import {LinkCard} from '@astrojs/starlight/components';
+
+<LinkCard title="Logos Storage Module API" href="/api/storage-module/"/>
+<LinkCard title="Logos Storage App Skeleton" href="https://github.com/logos-storage/logos-storage-app-skeleton"/>
+
+Simple idea: build a pair of command line applications on top of Storage Module API - one for publishing a file to the network, and
+another for downloading it. For the scope of this workshop, they could be apps that work on the local machine only.
+
+## Uploader
+
+The uploader publishes a file to the network. To invoke it you would call:
+
+```bash
+./uploader <filepath>
+```
+
+For this to work locally, you need to set the config option `nat:none`
+
+
