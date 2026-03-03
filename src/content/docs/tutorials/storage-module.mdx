@@ -35,18 +35,18 @@ The skeleton provides an `app_main` entry point with access to the `LogosModules
 
 ## Initializing the Module
 
-Before performing any operations, initialize the storage module:
+Before performing any operations, initialize the storage module with a JSON configuration string. See the [Configuration Reference](/api/configuration/) for all available options.
 
 ```cpp
 const QString jsonConfig = "{}";
-LogosResult result = m_logos->storage_module.init(jsonConfig);
+bool result = m_logos->storage_module.init(jsonConfig);
 ```
 
-<Aside type="caution">Do not call `init()` more than once per instance.</Aside>
+<Aside type="caution">Do not call `init()` more than once per instance unless you call `destroy()`. Note that the result is a boolean in order to be compatible with Logos headless mode.</Aside>
 
 ## Starting the Node
 
-Start the node and listen for the completion signal:
+Start the node and listen for the completion event:
 
 ```cpp
 m_logos->storage_module.on("storageStart", [this](const QVariantList& data) {
@@ -57,7 +57,7 @@ m_logos->storage_module.on("storageStart", [this](const QVariantList& data) {
     }
 });
 
-LogosResult result = m_logos->storage_module.start();
+bool result = m_logos->storage_module.start();
 ```
 
 ## Uploading a File
@@ -160,7 +160,7 @@ Always stop the node before destroying resources:
 
 ```cpp
 LogosResult result = m_logos->storage_module.stop();
-// Wait for storageStop signal...
+// Wait for storageStop event...
 result = m_logos->storage_module.destroy();
 ```
 
@@ -177,5 +177,5 @@ The storage module can also be run from the command line without a UI:
 
 ## Next Steps
 
-- See the [Storage Module API Reference](/api/storage-module/) for the complete list of methods and signals.
+- See the [Storage Module API Reference](/api/storage-module/) for the complete list of methods and events / signals.
 - If you need lower-level access or want to build bindings for another language, see the [libstorage Tutorial](/tutorials/libstorage/).
