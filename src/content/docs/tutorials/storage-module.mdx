@@ -39,10 +39,10 @@ Before performing any operations, initialize the storage module:
 
 ```cpp
 const QString jsonConfig = "{}";
-LogosResult result = m_logos->storage_module.init(jsonConfig);
+bool result = m_logos->storage_module.init(jsonConfig);
 ```
 
-<Aside type="caution">Do not call `init()` more than once per instance.</Aside>
+<Aside type="caution">Do not call `init()` more than once per instance unless you call `destroy()`. Note that the result is a boolean in order to be compatible with Logos headless mode.</Aside>
 
 ## Starting the Node
 
@@ -57,7 +57,7 @@ m_logos->storage_module.on("storageStart", [this](const QVariantList& data) {
     }
 });
 
-LogosResult result = m_logos->storage_module.start();
+bool result = m_logos->storage_module.start();
 ```
 
 ## Uploading a File
