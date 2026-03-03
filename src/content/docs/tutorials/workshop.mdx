@@ -3,25 +3,110 @@ title: Logos Builder's Workshop
 description: Ideas for building applications on top of Logos Storage.
 ---
 
-The starting point for building on top of Logos Storage is the [Logos Storage Module](https://github.com/logos-co/logos-storage-module).
-You can find a Nix-based application skeleton [here](https://github.com/logos-storage/logos-storage-app-skeleton).
+The starting point for building on top of Logos Storage -- and hence for this
+workshop -- is the [Logos Storage
+Module](https://github.com/logos-co/logos-storage-module). You can find a
+Nix-based application skeleton
+[here](https://github.com/logos-storage/logos-storage-app-skeleton). This
+workshop requires [Nix](https://nixos.org/download/).
 
-import {LinkCard} from '@astrojs/starlight/components';
+import {LinkCard, Aside} from '@astrojs/starlight/components';
 
 <LinkCard title="Logos Storage Module API" href="/api/storage-module/"/>
 <LinkCard title="Logos Storage App Skeleton" href="https://github.com/logos-storage/logos-storage-app-skeleton"/>
 
-Simple idea: build a pair of command line applications on top of Storage Module API - one for publishing a file to the network, and
-another for downloading it. For the scope of this workshop, they could be apps that work on the local machine only.
+You can read the API documentation and decide what to build. We provide a suggestion
+here for inspiration.
 
-## Uploader
+<Aside type="note">
+Unfortunately, it is unlikely that the router at the room where the workshop is being
+run will be friendly towards P2P software. We therefore recommend trying things that
+run locally, or on the local network if the router allows device-to-device communication.
+</Aside>
 
-The uploader publishes a file to the network. To invoke it you would call:
+#### Idea: Publish and Download over the CLI
+
+We propose building a simple pair of command line applications on top of Storage
+Module API which allow publishing and downloading a file from the network,
+respectively.
+
+If you choose to try this out, at the end of the workshop you should have two CLI
+applications - `publisher` and `downloader`. `publisher` should allow publishing
+a file to the network, as follows:
 
 ```bash
-./uploader <filepath>
+./publisher ./path-to-file
+
+SPR: spr:CiUIAhIhAjQOk4ZMeWVeOT1D6DRebpfvtoQQFkCZJd-HjUNWJ0rO
+EgIDARpJCicAJQgCEiECNA6Thkx5ZV45PUPoNF5ul--2hBAWQJkl34eNQ1YnS
+s4QzsGbzQYaCwoJBM5RHD-RAiOCGgsKCQTOURw_kQIjgipHMEUCIQDt7dKojuo
+e9f9w3F7kS9m_XReZUwvQ9MYJ1Ca-p5FlLAIgLH7OzQ3eMLEMUwmbjFF-ROS2
+IUO_Lu1r0OfC7oP2O_M
+
+File published.
+CID: zDvZRwzm49ZJLzxheYtydzx6AcNVSrf69LriUWjPr1SNLVnaXfj2
+
+Type CTRL+C to exit.
 ```
 
-For this to work locally, you need to set the config option `nat:none`
+The utility should use the [Logos Module API](/api/storage-module) to initialize
+the module and publish a file. It should then print the node's Signed Peer
+Record and the CID of the uploaded file.
 
+The `downloader`, instead, takes a bootrap node SPR, a CID, and an output path
+and downloads the file from the network onto a local file:
 
+```bash
+./downloader <node-spr> <cid> ./output
+```
+
+You can then pass the SPR string printed by the uploader as `<node-spr>` and
+the CID as `<cid>`, and the downloader should be able to download the file.
+
+#### Local vs. Local Area vs. Wide Area Network
+
+The first step to clear is ensuring that the utilities work on your computer
+(localhost). To run such local network experiments, you must set your NAT config
+to `none`; i.e., your config JSON passed to
+ [`init`](/api/storage-module#initjsonconfig) during module initialization, should
+ contain:
+
+ ```json
+{
+  "bootstrap-node": ["<bootstrap-spr>"],
+  "nat": "none",
+  ...
+}
+```
+
+Once you get that working, you can try the Local Area Network. If the router
+does not block communication across IPs (which you can test with
+[netcat](https://en.wikipedia.org/wiki/Netcat)), you should be able to run the
+publisher on one laptop and the downloader in another and it should work.
+
+<Aside type="caution">
+Try to get this working on your computer first. Use `"nat": "none"` in the
+node configuration.
+</Aside>
+
+Publishing to the wider internet can be trickier as it requires your node to be
+reachable, and venue routers tend to be very restrictive. You should still be
+able to download from reachable nodes, however. You should set `"nat": "any"`
+and use our public bootstrap nodes:
+
+<Aside type="note">
+When the intent is joining the public Logos Storage network, you should use our
+public bootstrap nodes.
+</Aside>
+
+```json
+{
+  "bootstrap-node": [
+    "spr:CiUIAhIhA-VlcoiRm02KyIzrcTP-ljFpzTljfBRRKTIvhMIwqBqWEgIDARpJCicAJQgCEiED5WVyiJGbTYrIjOtxM_6WMWnNOWN8FFEpMi-EwjCoGpYQs8n8wQYaCwoJBHTKubmRAnU6GgsKCQR0yrm5kQJ1OipHMEUCIQDwUNsfReB4ty7JFS5WVQ6n1fcko89qVAOfQEHixa03rgIgan2-uFNDT-r4s9TOkLe9YBkCbsRWYCHGGVJ25rLj0QE",
+    "spr:CiUIAhIhApIj9p6zJDRbw2NoCo-tj98Y760YbppRiEpGIE1yGaMzEgIDARpJCicAJQgCEiECkiP2nrMkNFvDY2gKj62P3xjvrRhumlGISkYgTXIZozMQvcz8wQYaCwoJBAWhF3WRAnVEGgsKCQQFoRd1kQJ1RCpGMEQCIFZB84O_nzPNuViqEGRL1vJTjHBJ-i5ZDgFL5XZxm4HAAiB8rbLHkUdFfWdiOmlencYVn0noSMRHzn4lJYoShuVzlw",
+    "spr:CiUIAhIhApqRgeWRPSXocTS9RFkQmwTZRG-Cdt7UR2N7POoz606ZEgIDARpJCicAJQgCEiECmpGB5ZE9JehxNL1EWRCbBNlEb4J23tRHY3s86jPrTpkQj8_8wQYaCwoJBAXfEfiRAnVOGgsKCQQF3xH4kQJ1TipGMEQCIGWJMsF57N1iIEQgTH7IrVOgEgv0J2P2v3jvQr5Cjy-RAiAy4aiZ8QtyDvCfl_K_w6SyZ9csFGkRNTpirq_M_QNgKw"
+  ],
+  "nat": "any"
+  ...
+}
+```
