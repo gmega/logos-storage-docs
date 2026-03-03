@@ -47,7 +47,7 @@ bool result = m_logos->storage_module.init(jsonConfig);
 
 ### `start()`
 
-Starts the storage node. Listen for the `storageStart` signal for completion.
+Starts the storage node. Listen for the `storageStart` event for completion.
 
 ```cpp
 m_logos->storage_module.on("storageStart", [this](const QVariantList& data) {
