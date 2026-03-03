@@ -12,9 +12,13 @@ All methods return a `LogosResult` object containing a `success` boolean and a `
 ```cpp
 LogosResult result = m_logos->storage_module.someOperation(args);
 if (!result.success) {
-    QString error = result.getValue<QString>();
+    QString error = result.getError<QString>();
+    // Or use the shorthand because the default error type is QString
+    QString error = result.getError();
 } else {
     auto value = result.getValue<ExpectedType>();
+    // Or you can use shorthand
+    QString value = result.getString();
 }
 ```
 
@@ -32,18 +36,18 @@ Initializes the storage module with the given JSON configuration.
 
 ```cpp
 const QString jsonConfig = "{}";
-LogosResult result = m_logos->storage_module.init(jsonConfig);
+bool result = m_logos->storage_module.init(jsonConfig);
 ```
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `jsonConfig` | `QString` | JSON string with node configuration |
 
-<Aside type="caution">Do not call `init()` more than once per instance.</Aside>
+<Aside type="caution">Do not call `init()` more than once per instance unless you call `destroy()`. Note that the result is a boolean in order to be compatible with Logos headless mode.</Aside>
 
 ### `start()`
 
-Starts the storage node. Listen for the `storageStart` signal for completion.
+Starts the storage node. Listen for the `storageStart` event for completion.
 
 ```cpp
 m_logos->storage_module.on("storageStart", [this](const QVariantList& data) {
@@ -52,12 +56,12 @@ m_logos->storage_module.on("storageStart", [this](const QVariantList& data) {
         QString error = data[1].toString();
     }
 });
-LogosResult result = m_logos->storage_module.start();
+bool result = m_logos->storage_module.start();
 ```
 
 **Returns:** `LogosResult`
 
-<span class="signal-badge">Signal: storageStart</span> — `(bool success, QString message)`
+<span class="signal-badge">Event: storageStart</span> — `(bool success, QString message)`
 
 ### `stop()`
 
@@ -67,7 +71,7 @@ Stops the storage node.
 LogosResult result = m_logos->storage_module.stop();
 ```
 
-<span class="signal-badge">Signal: storageStop</span>
+<span class="signal-badge">Event: storageStop</span>
 
 <Aside type="caution">It is **strongly recommended** to stop the node before calling `destroy()` to prevent data loss.</Aside>
 
@@ -114,7 +118,11 @@ LogosResult result = m_logos->storage_module.connect(peerId, peerAddresses);
 | `peerId` | `QString` | Target peer's identifier |
 | `peerAddresses` | `QStringList` | List of multiaddresses for the peer |
 
-<span class="signal-badge">Signal: storageConnect</span>
+<span class="signal-badge">Event: storageConnect</span>
+
+<Aside type="caution">
+  This API is currently unstable and might not work properly.
+</Aside>
 
 ### `debug()`
 
@@ -122,6 +130,26 @@ Returns node diagnostic data as JSON.
 
 ```cpp
 LogosResult result = m_logos->storage_module.debug();
+
+QStringList addrs = result.getValue<QStringList>("addrs");
+for (const QString& addr : addrs) {
+    // Use the listen addr
+}
+
+QStringList announceAddresses = result.getValue<QStringList>("announceAddresses");
+for (const QString& addr : announceAddresses) {
+    // Use the announce address
+}
+
+QVariantMap table = result.getValue<QVariantMap>("table");
+QVariantList nodes = table["nodes"].toList();
+
+for (const QVariant& nodeVar : nodes) {
+    QVariantMap node = nodeVar.toMap();
+    QString peerId = node["peerId"].toString();
+    bool seen = node["seen"].toBool();
+    // ...
+}
 ```
 
 ---
@@ -145,9 +173,9 @@ LogosResult result = m_logos->storage_module.uploadUrl(fileUrl, chunkSize);
 | `url` | `QUrl` | Local file URL to publish |
 | `chunkSize` | `int` | *(Optional)* Chunk size in bytes. Default: `65536` |
 
-<span class="signal-badge">Signal: storageUploadDone</span> — `(bool success, QString sessionId, QString cidOrError)`
+<span class="signal-badge">Event: storageUploadDone</span> — `(bool success, QString sessionId, QString cidOrError)`
 
-<span class="signal-badge">Signal: storageUploadProgress</span> — `(bool success, QString sessionId, int bytesUploaded)`
+<span class="signal-badge">Event: storageUploadProgress</span> — `(bool success, QString sessionId, int bytesUploaded)`
 
 ```cpp
 m_logos->storage_module.on("storageUploadDone", [this](const QVariantList& data) {
@@ -162,6 +190,10 @@ m_logos->storage_module.on("storageUploadProgress", [this](const QVariantList& d
     int bytes = data[2].toInt();
 });
 ```
+
+<Aside type="tip">
+  This is the recommended way to upload a file.
+</Aside>
 
 ### `uploadInit(filename, chunkSize)` — Streaming Publish
 
@@ -220,6 +252,10 @@ Aborts an active upload session.
 LogosResult result = m_logos->storage_module.uploadCancel(sessionId);
 ```
 
+<Aside type="tip">
+  This is an advanced API. It is recommended to use the `uploadUrl` api if it fits your needs.
+</Aside>
+
 ---
 
 ### `downloadToUrl(cid, url, local, chunkSize)` — File Download
@@ -242,9 +278,9 @@ LogosResult result = m_logos->storage_module.downloadToUrl(cid, url, local, chun
 | `local` | `bool` | *(Optional)* If `true`, only retrieve locally-cached data. Default: `false` |
 | `chunkSize` | `int` | *(Optional)* Chunk size in bytes. Default: `65536` |
 
-<span class="signal-badge">Signal: storageDownloadProgress</span> — `(bool success, QString sessionId, int bytes)`
+<span class="signal-badge">Event: storageDownloadProgress</span> — `(bool success, QString sessionId, int bytes)`
 
-<span class="signal-badge">Signal: storageDownloadDone</span> — `(bool success, QString sessionId, QString errorMessage)`
+<span class="signal-badge">Event: storageDownloadDone</span> — `(bool success, QString sessionId, QString errorMessage)`
 
 ```cpp
 m_logos->storage_module.on("storageDownloadProgress", [this](const QVariantList& data) {
@@ -290,6 +326,15 @@ Lists all locally stored manifests.
 
 ```cpp
 LogosResult result = m_logos->storage_module.manifests();
+if (result.success) {
+    // Get first item value
+    QString cid = result.getValue<QString>(0, "cid");
+    QString treeCid = result.getValue<QString>(0, "treeCid");
+    qint64 datasetSize = result.getValue<qint64>(0, "datasetSize");
+    qint64 blockSize = result.getValue<qint64>(0, "blockSize");
+    QString filename = result.getValue<QString>(0, "filename");
+    QString mimetype = result.getValue<QString>(0, "mimetype");
+}
 ```
 
 ### `downloadManifest(cid)`
@@ -298,6 +343,17 @@ Fetches metadata for a given CID.
 
 ```cpp
 LogosResult result = m_logos->storage_module.downloadManifest(cid);
+
+LogosResult result = manifests();
+
+if (result.success) {
+    QString cid = result.getValue<QString>("cid");
+    QString treeCid = result.getValue<QString>("treeCid");
+    qint64 datasetSize = result.getValue<qint64>("datasetSize");
+    qint64 blockSize = result.getValue<qint64>("blockSize");
+    QString filename = result.getValue<QString>("filename");
+    QString mimetype = result.getValue<QString>("mimetype");
+}
 ```
 
 ---
@@ -320,6 +376,8 @@ Triggers a background network retrieval for the given CID.
 LogosResult result = m_logos->storage_module.fetch(cid);
 ```
 
+<Aside type="caution">This operation is done in the background, i.e., no event is emitted upon completion.</Aside>
+
 ### `remove(cid)`
 
 Deletes content from local storage.
@@ -334,6 +392,12 @@ Returns storage usage statistics.
 
 ```cpp
 LogosResult result = m_logos->storage_module.space();
+if (result.success) {
+    int totalBlocks = result.getValue<int>("totalBlocks");
+    int quotaMaxBytes = result.getValue<int>("quotaMaxBytes");
+    int quotaUsedBytes = result.getValue<int>("quotaUsedBytes");
+    int quotaReservedBytes = result.getValue<int>("totalBlocks");
+}
 ```
 
 ---
@@ -361,11 +425,11 @@ QString ver = result.getValue<QString>();
 
 ---
 
-## Signals Reference
+## Events Reference
 
-All asynchronous operations emit Qt signals. Subscribe using `on()`:
+All asynchronous operations emit Events managed by the Logos SDK. Subscribe using `on()`:
 
-| Signal | Parameters | Emitted By |
+| Event | Parameters | Emitted By |
 |--------|------------|------------|
 | `storageStart` | `(bool success, QString message)` | `start()` |
 | `storageStop` | `(bool success)` | `stop()` |
