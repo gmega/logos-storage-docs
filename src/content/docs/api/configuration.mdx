@@ -1,0 +1,417 @@
+---
+title: Configuration Reference
+description: Complete reference for Logos Storage node configuration options, as used in the JSON config passed to init().
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Configuration is supplied as a JSON object to the [`init(jsonConfig)`](/api/storage-module#initjsonconfig) call. All keys are optional; omitting a key applies its default value.
+
+```json
+{
+  "log-level": "info",
+  "log-format": "auto",
+  "data-dir": "/path/to/data",
+  "listen-ip": "0.0.0.0",
+  "listen-port": 0,
+  "nat": "any",
+  "disc-port": 8090,
+  "bootstrap-node": ["spr:..."],
+  "max-peers": 160,
+  "storage-quota": "20480m",
+  "block-ttl": "30d",
+  "api-bindaddr": "127.0.0.1",
+  "api-port": 8080,
+  "repo-kind": "fs"
+}
+```
+
+---
+
+## Logging
+
+### `log-level`
+
+| | |
+|---|---|
+| **Type** | `string` |
+| **Default** | `"info"` |
+
+Sets the minimum severity level for log output. Accepts a level name optionally followed by per-topic overrides separated by `;`.
+
+Supported levels (case-insensitive): `trace`, `debug`, `info`, `notice`, `warn`, `error`, `fatal`
+
+```json
+{ "log-level": "debug" }
+```
+
+### `log-format`
+
+| | |
+|---|---|
+| **Type** | `string` |
+| **Default** | `"auto"` |
+
+Controls how log output is formatted.
+
+| Value | Behaviour |
+|-------|-----------|
+| `"auto"` | ANSI colours when stdout is a TTY; plain text otherwise |
+| `"colors"` | Always use ANSI colour codes |
+| `"nocolors"` | Always strip ANSI colour codes |
+| `"json"` | Machine-readable JSON log lines on stdout |
+| `"none"` | Suppress all log output |
+
+```json
+{ "log-format": "json" }
+```
+
+---
+
+## Metrics
+
+### `metrics`
+
+| | |
+|---|---|
+| **Type** | `bool` |
+| **Default** | `false` |
+
+Enables the Prometheus-compatible metrics HTTP server.
+
+```json
+{ "metrics": true }
+```
+
+### `metrics-address`
+
+| | |
+|---|---|
+| **Type** | `string` (IP address) |
+| **Default** | `"127.0.0.1"` |
+
+Listening address for the metrics server.
+
+```json
+{ "metrics-address": "0.0.0.0" }
+```
+
+### `metrics-port`
+
+| | |
+|---|---|
+| **Type** | `number` (port) |
+| **Default** | `8008` |
+
+HTTP port for the metrics server. Metrics are served at `http://<metrics-address>:<metrics-port>/metrics`.
+
+```json
+{ "metrics-port": 8008 }
+```
+
+---
+
+## Node
+
+### `data-dir`
+
+| | |
+|---|---|
+| **Type** | `string` (path) |
+| **Default** | Platform-specific user data directory |
+
+Root directory where Storage writes configuration, keys, and repository data.
+
+| Platform | Default path |
+|----------|-------------|
+| Linux / other | `~/.cache/storage` |
+| macOS | `~/Library/Application Support/Storage` |
+| Windows | `%APPDATA%\Storage` |
+
+```json
+{ "data-dir": "/var/lib/storage" }
+```
+
+### `num-threads`
+
+| | |
+|---|---|
+| **Type** | `number` |
+| **Default** | `0` |
+
+Number of worker threads. `0` uses one thread per available CPU core. If a non-zero value is provided it must be `2` or greater.
+
+```json
+{ "num-threads": 4 }
+```
+
+### `agent-string`
+
+| | |
+|---|---|
+| **Type** | `string` |
+| **Default** | `"Logos Storage"` |
+
+Identifier string broadcast to peers during connection handshake.
+
+```json
+{ "agent-string": "MyApp/1.0 Logos Storage" }
+```
+
+---
+
+## Network
+
+### `listen-ip`
+
+| | |
+|---|---|
+| **Type** | `string` (IP address) |
+| **Default** | `"0.0.0.0"` (all interfaces) |
+
+IP address the node listens on for inbound peer connections. Accepts IPv4 and IPv6 addresses.
+
+```json
+{ "listen-ip": "192.168.1.10" }
+```
+
+### `listen-port`
+
+| | |
+|---|---|
+| **Type** | `number` (port) |
+| **Default** | `0` (random free port) |
+
+TCP port for inbound peer connections. Set to `0` to let the OS select an available port.
+
+```json
+{ "listen-port": 8070 }
+```
+
+### `nat`
+
+| | |
+|---|---|
+| **Type** | `string` |
+| **Default** | `"any"` |
+
+Strategy for determining the node's public IP address, used to announce reachable addresses to peers.
+
+| Value | Behaviour |
+|-------|-----------|
+| `"any"` | Try UPnP, then PMP, then fall back |
+| `"none"` | Do not attempt NAT traversal (use for LAN-only setups) |
+| `"upnp"` | Use UPnP to discover the public address |
+| `"pmp"` | Use NAT-PMP to discover the public address |
+| `"extip:<IP>"` | Use the given IP address as the public address |
+
+```json
+{ "nat": "extip:203.0.113.42" }
+```
+
+### `disc-port`
+
+| | |
+|---|---|
+| **Type** | `number` (port) |
+| **Default** | `8090` |
+
+UDP port used for peer discovery (discv5).
+
+```json
+{ "disc-port": 8090 }
+```
+
+### `net-privkey`
+
+| | |
+|---|---|
+| **Type** | `string` |
+| **Default** | `"key"` |
+
+File path (or base name relative to `data-dir`) of the secp256k1 private key used as the node's network identity. The file is created on first start if it does not exist.
+
+```json
+{ "net-privkey": "/etc/storage/node.key" }
+```
+
+### `bootstrap-node`
+
+| | |
+|---|---|
+| **Type** | `array of strings` |
+| **Default** | `[]` |
+
+List of bootstrap nodes expressed as [Signed Peer Records (SPR)](https://github.com/libp2p/specs/blob/master/RFC/0002-signed-envelopes.md). The node contacts these peers on startup to discover the rest of the network.
+
+```json
+{
+  "bootstrap-node": [
+    "spr:CiUIAhIhAiS8...",
+    "spr:CiUIAhIhA3Pk..."
+  ]
+}
+```
+
+<Aside type="tip">
+  Bootstrap nodes for the Logos Storage testnet are published in the [network repository](https://github.com/logos-co).
+</Aside>
+
+### `max-peers`
+
+| | |
+|---|---|
+| **Type** | `number` |
+| **Default** | `160` |
+
+Maximum number of simultaneously connected peers.
+
+```json
+{ "max-peers": 64 }
+```
+
+---
+
+## REST API
+
+### `api-bindaddr`
+
+| | |
+|---|---|
+| **Type** | `string` (IP address) |
+| **Default** | `"127.0.0.1"` |
+
+Bind address for the REST API server. Set to `null` to disable the API entirely.
+
+```json
+{ "api-bindaddr": "0.0.0.0" }
+```
+
+### `api-port`
+
+| | |
+|---|---|
+| **Type** | `number` (port) |
+| **Default** | `8080` |
+
+Port the REST API server listens on.
+
+```json
+{ "api-port": 8080 }
+```
+
+### `api-cors-origin`
+
+| | |
+|---|---|
+| **Type** | `string` |
+| **Default** | `null` (all cross-origin download requests denied) |
+
+Value sent in the `Access-Control-Allow-Origin` response header for download endpoints. Use `"*"` to allow any origin.
+
+```json
+{ "api-cors-origin": "https://myapp.example.com" }
+```
+
+---
+
+## Storage
+
+### `repo-kind`
+
+| | |
+|---|---|
+| **Type** | `string` |
+| **Default** | `"fs"` |
+
+Backend used for the block repository.
+
+| Value | Backend |
+|-------|---------|
+| `"fs"` | Plain filesystem (recommended) |
+| `"sqlite"` | SQLite database |
+| `"leveldb"` | LevelDB database |
+
+```json
+{ "repo-kind": "fs" }
+```
+
+### `storage-quota`
+
+| | |
+|---|---|
+| **Type** | `string` (byte size) |
+| **Default** | `"20480m"` (20 GiB) |
+
+Maximum disk space the node may use for stored blocks. Accepts human-readable sizes using binary prefixes (`k`, `m`, `g`, `t`).
+
+```json
+{ "storage-quota": "100g" }
+```
+
+### `block-ttl`
+
+| | |
+|---|---|
+| **Type** | `string` (duration) |
+| **Default** | `"30d"` |
+
+How long blocks are retained before being eligible for deletion. Set to `"0"` to disable expiry (blocks are kept indefinitely).
+
+Accepts duration strings such as `"30d"`, `"12h"`, `"90m"`.
+
+```json
+{ "block-ttl": "7d" }
+```
+
+### `block-mi`
+
+| | |
+|---|---|
+| **Type** | `string` (duration) |
+| **Default** | `"10m"` |
+
+How often the maintenance cycle runs to check blocks for expiry and clean up stale data.
+
+```json
+{ "block-mi": "5m" }
+```
+
+### `block-mn`
+
+| | |
+|---|---|
+| **Type** | `number` |
+| **Default** | `1000` |
+
+Number of blocks inspected per maintenance cycle. Increasing this value speeds up expiry processing at the cost of higher I/O during each cycle.
+
+```json
+{ "block-mn": 500 }
+```
+
+### `block-retries`
+
+| | |
+|---|---|
+| **Type** | `number` |
+| **Default** | `3000` |
+
+Maximum number of fetch attempts for a block before the request is abandoned.
+
+```json
+{ "block-retries": 100 }
+```
+
+### `cache-size`
+
+| | |
+|---|---|
+| **Type** | `string` (byte size) |
+| **Default** | `"0"` (cache disabled) |
+
+In-memory block cache size. Enabling the cache (`> 0`) can improve read performance, particularly on slow storage. Accepts the same size format as `storage-quota`.
+
+```json
+{ "cache-size": "512m" }
+```
